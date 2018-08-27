@@ -1,0 +1,58 @@
+Extensibility only exists for Gateway-model payment systems.
+
+
+We have to write the BEP servlet or the extensibility servlet (trxn_customizer_vps e.g.)
+
+Which backend payment system we have to write servlet for ?
+
+BEP Servlet will be similar to pfpProcess in Paypal.
+
+The BEP servlet reads the httpRequest (from OIP) and interacts with server to get the response and send it back to OIP.
+
+
+
+
+
+Paypal Log
+===========
+
+
+Payment engine queries Payee from IBY tables and based on payee, gets the BEP Url.
+TxnCustomizer_BEP is called
+TxnCustomizer_BEP.preTxn() is called
+
+Then BEP Servlet is called (pfpProcess)
+
+PfpfProcess has doGet and doPost methods
+
+doPost () 
+===========
+paymentEngine = new pfpPayment();
+paymentEngine.process();
+
+
+
+Integration
+==============
+
+In general each payment system vendor have their own requirements, formats and communication protocols. Since there are large number of payment system providers it is not feasible for Oracle to cover the requirements of all payment system. As such, out of the box, Oracle provides integration with few payment systems such as Chase Paymentech, First Data North etc.  In addition, several payment system providers such as Paypal and Cybersource have built their own integration with Oracle.  For any other payment system, integration needs to be built by either the vendor or the implementing merchant. RED seems to fall under this category.
+
+Based on review of documentation you have uploaded, it is clear that RED is exposing a web service interface to communicate with it.  To perform a payment operation such as authorization etc you are required to send all authorization details in XML message posted to the gateway URL.  This is accomplished in 2 different steps:
+
+--->  generation of XML message that confirms to RED's XML SOAP INTERFACE requirements
+
+---> posting/transmission of this xml to RED gateway
+
+There are 2 different ways this can be achieved both of which involves various amount of custom development.
+
+Approach 1 involves using Oracle's BI/XML publisher application framework to generate and transmit the XML message to RED.  This approach involves following steps:
+
+   a.   Use Oracle's BI/XML publisher to generate XML message in the format required by RED
+   b.   Once the XML is generated, you can use HTTPS Post protocol provided by Oracle Payments to transmit the request to RED gateway URL
+   c.    You may need to create a customized acknowledgment parser to process the response that you receive back from RED
+ 
+Oracle seeded integration with Concord EFS payment system uses this approach. You can refer to this payment system for reference.
+
+Approach 2 involves using external java servlet to both generate the XML and transmit it.. Oracle Payments will invoke this servlet and pass the authorization details in the form of name-value pairs. Your custom servlet will then parse the HTTP request and derive all required details and then generates the XML. The servlet will then initiate communication with RED gateway and post the XML message. It will also have the logic to parse the response received from RED and set the values for Oracle's response parameters.  
+
+As you can see, both approaches require some amount custom development and testing before you can proceed with this implementation. L
